@@ -76,6 +76,28 @@ if (bytes_received > 0) {
     printf("Agent response: %s", response);
 }
 
+/* Request LISTPROC after SYSINFO */
+const char *listproc_command = "LISTPROC\n";
+send(sock_fd, listproc_command, strlen(listproc_command), 0);
+
+memset(response, 0, sizeof(response));
+bytes_received = recv(sock_fd, response, sizeof(response) - 1, 0);
+
+if (bytes_received > 0) {
+    response[bytes_received] = '\0';
+    printf("Agent response: %s", response);
+}
+/* Request EXEC DATE */
+const char *exec_command = "EXEC LS\n";
+send(sock_fd, exec_command, strlen(exec_command), 0);
+
+memset(response, 0, sizeof(response));
+bytes_received = recv(sock_fd, response, sizeof(response) - 1, 0);
+
+if (bytes_received > 0) {
+    response[bytes_received] = '\0';
+    printf("Agent response: %s", response);
+}
  close(sock_fd);
 
     return EXIT_SUCCESS;
