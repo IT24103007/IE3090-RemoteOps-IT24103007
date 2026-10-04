@@ -7,6 +7,7 @@
 
 #define AGENT_PORT 9410
 #define AGENT_IP "127.0.0.1"
+#define AUTH_TOKEN "OPS-3007"
 
 int main(void)
 {
@@ -44,8 +45,38 @@ int main(void)
     }
 
     printf("Connected to RemoteOps Agent successfully.\n");
+    /* Send authentication command */
+    char auth_command[128];
+    char response[256];
 
-    close(sock_fd);
+    snprintf(auth_command, sizeof(auth_command),
+             "AUTH %s\n", AUTH_TOKEN);
+
+    send(sock_fd, auth_command, strlen(auth_command), 0);
+
+    memset(response, 0, sizeof(response));
+    ssize_t bytes_received =
+        recv(sock_fd, response, sizeof(response) - 1, 0);
+
+    if (bytes_received > 0) {
+        response[bytes_received] = '\0';
+        printf("Agent response: %s", response);
+    }
+
+   
+/* Request SYSINFO after successful authentication */
+const char *sysinfo_command = "SYSINFO\n";
+send(sock_fd, sysinfo_command, strlen(sysinfo_command), 0);
+
+memset(response, 0, sizeof(response));
+bytes_received = recv(sock_fd, response, sizeof(response) - 1, 0);
+
+if (bytes_received > 0) {
+    response[bytes_received] = '\0';
+    printf("Agent response: %s", response);
+}
+
+ close(sock_fd);
 
     return EXIT_SUCCESS;
 }

@@ -4,9 +4,12 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
+#include <sys/sysinfo.h>
 
 #define AGENT_PORT 9410
 #define BACKLOG 10
+#define AUTH_TOKEN "OPS-3007"
+#define SID "7003"
 
 int main(void)
 {
@@ -70,7 +73,74 @@ int main(void)
            inet_ntoa(client_addr.sin_addr),
            ntohs(client_addr.sin_port));
 
-    close(client_fd);
+   
+
+    /* Receive AUTH command from Controller */
+    char buffer[1024];
+    ssize_t bytes_received;
+
+    memset(buffer, 0, sizeof(buffer));
+    bytes_received = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
+
+    if (bytes_received > 0) {
+        buffer[bytes_received] = '\0';
+
+        /* Remove newline characters */
+        buffer[strcspn(buffer, "\r\n")] = '\0';
+
+        if (strcmp(buffer, "AUTH " AUTH_TOKEN) == 0) {
+            char response[128];
+            snprintf(response, sizeof(response),
+                     "OK AUTHENTICATED SID:%s\n", SID);
+
+            send(client_fd, response, strlen(response), 0);
+            printf("Controller authenticated successfully.\n");
+/* Wait for the next command after authentication */
+memset(buffer, 0, sizeof(buffer));
+bytes_received = recv(client_fd, buffer, sizeof(buffer) - 1, 0);
+
+if (bytes_received > 0) {
+    buffer[bytes_received] = '\0';
+    buffer[strcspn(buffer, "\r\n")] = '\0';
+
+    if (strcmp(buffer, "SYSINFO") == 0) {
+        char sys_response[256];
+struct sysinfo info;
+double cpu_load = 0.0;
+long mem_used_mb = 0;
+long uptime_sec = 0;
+
+if (sysinfo(&info) == 0) {
+    cpu_load = (double)info.loads[0] / (1 << SI_LOAD_SHIFT);
+
+    unsigned long long total_ram =
+        (unsigned long long)info.totalram * info.mem_unit;
+    unsigned long long free_ram =
+        (unsigned long long)info.freeram * info.mem_unit;
+
+    mem_used_mb = (long)((total_ram - free_ram) /
+                         (1024 * 1024));
+
+    uptime_sec = info.uptime;
+}
+
+snprintf(sys_response, sizeof(sys_response),
+         "OK SYSINFO %.2f %ld %ld SID:%s\n",
+         cpu_load, mem_used_mb, uptime_sec, SID);
+
+        send(client_fd, sys_response, strlen(sys_response), 0);
+        printf("SYSINFO request processed.\n");
+    }
+}
+        } else {
+            char response[128];
+            snprintf(response, sizeof(response),
+                     "ERR 001 AUTH_FAILED SID:%s\n", SID);
+
+            send(client_fd, response, strlen(response), 0);
+            printf("Controller authentication failed.\n");
+        }
+    } close(client_fd);
     close(server_fd);
 
     return EXIT_SUCCESS;

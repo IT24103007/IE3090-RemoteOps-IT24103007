@@ -14,3 +14,5 @@ Initial decisions:
 - The Agent and Controller will initially be tested as separate processes on the same Ubuntu machine.
 
 Initial personalised values were calculated from registration number IT24103007.
+### Authentication and SYSINFO
+Implemented Controller authentication using the personalised token OPS-3007 and SID 7003. After successful authentication, the Controller can request SYSINFO from the Agent. SYSINFO now returns the Linux system load, used memory in MB, and system uptime in seconds. The Agent and Controller communication was tested successfully on TCP port 9410.
