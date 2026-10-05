@@ -24,4 +24,18 @@ The project uses:
 - UDP for periodic system monitoring.
 
 ## Status
-Initial project structure created.
+Implementation completed and tested.
+
+Implemented features:
+- Personalised TCP Agent/Controller communication.
+- Authentication using the personalised token.
+- SYSINFO and LISTPROC commands.
+- Whitelisted EXEC command handling.
+- PUT and GET file transfer.
+- File transfer validation.
+- Concurrent client handling using pthreads.
+- Graceful client disconnect.
+- Thread-safe logging.
+- UDP monitoring using MONITOR START and MONITOR STOP.
+
+Testing evidence and project documentation have been prepared for final submission.
