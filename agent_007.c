@@ -12,7 +12,21 @@
 #define AUTH_TOKEN "OPS-3007"
 #define SID "7003"
 void *handle_client(void *arg);
+pthread_mutex_t log_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+void write_log(const char *message)
+{
+    pthread_mutex_lock(&log_mutex);
+
+    FILE *log_file = fopen("remoteops_IT24103007.log", "a");
+
+    if (log_file != NULL) {
+        fprintf(log_file, "%s\n", message);
+        fclose(log_file);
+    }
+
+    pthread_mutex_unlock(&log_mutex);
+}
 int main(void)
 {
 int server_fd;
@@ -157,8 +171,8 @@ void *handle_client(void *arg)
              0);
     }
 
-    printf("Controller authenticated successfully.\n");
-
+    printf("Controller authenticated successfully.\n"); 
+    write_log("AUTH SUCCESS SID:7003");
     /* Process commands until Controller disconnects */
     while (1) {
 
@@ -196,7 +210,30 @@ if (newline != NULL) {
         bytes_received - ((size_t)(newline - buffer) + 1);
 }
         
+/* Graceful disconnect command */
+if (strcmp(buffer, "QUIT") == 0) {
+    char response[128];
 
+    snprintf(response,
+             sizeof(response),
+             "OK BYE SID:%s\n",
+             SID);
+
+    send(client_fd,
+         response,
+         strlen(response),
+         0);
+
+    printf("Controller requested graceful disconnect.\n");
+    write_log("GRACEFUL DISCONNECT SID:7003");
+break;
+}
+char log_message[1200];
+snprintf(log_message,
+         sizeof(log_message),
+         "COMMAND SID:7003 %s",
+         buffer);
+write_log(log_message);
         /* SYSINFO command */
         if (strcmp(buffer, "SYSINFO") == 0) {
 
