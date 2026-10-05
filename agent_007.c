@@ -345,6 +345,42 @@ else if (strncmp(buffer, "EXEC ", 5) == 0) {
             long filesize;
 
             if (sscanf(buffer + 4, "%255s %ld", filename, &filesize) == 2) {
+/* Reject unsafe filenames */
+if (strstr(filename, "..") != NULL ||
+    strchr(filename, '/') != NULL ||
+    strchr(filename, '\\') != NULL) {
+
+    char response[128];
+
+    snprintf(response,
+             sizeof(response),
+             "ERR 006 INVALID_FILENAME SID:%s\n",
+             SID);
+
+    send(client_fd,
+         response,
+         strlen(response),
+         0);
+
+    continue;
+}
+
+/* Maximum upload size: 5 MB */
+if (filesize < 0 || filesize > 5 * 1024 * 1024) {
+    char response[128];
+
+    snprintf(response,
+             sizeof(response),
+             "ERR 004 FILE_TOO_LARGE SID:%s\n",
+             SID);
+
+    send(client_fd,
+         response,
+         strlen(response),
+         0);
+
+    continue;
+}
                 char filepath[512];
 
                 snprintf(filepath,
@@ -424,6 +460,25 @@ else if (strncmp(buffer, "GET ", 4) == 0) {
     char filepath[512];
 
     if (sscanf(buffer + 4, "%255s", filename) == 1) {
+/* Reject unsafe filenames */
+if (strstr(filename, "..") != NULL ||
+    strchr(filename, '/') != NULL ||
+    strchr(filename, '\\') != NULL) {
+
+    char response[128];
+
+    snprintf(response,
+             sizeof(response),
+             "ERR 006 INVALID_FILENAME SID:%s\n",
+             SID);
+
+    send(client_fd,
+         response,
+         strlen(response),
+         0);
+
+    continue;
+}
 
         snprintf(filepath,
                  sizeof(filepath),
