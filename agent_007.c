@@ -11,6 +11,12 @@
 #define BACKLOG 10
 #define AUTH_TOKEN "OPS-3007"
 #define SID "7003"
+#define UDP_PORT 9411
+
+static int monitor_running = 0;
+static pthread_mutex_t monitor_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+void *udp_monitor(void *arg);
 void *handle_client(void *arg);
 pthread_mutex_t log_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -113,6 +119,59 @@ close(server_fd);
 return EXIT_SUCCESS;
 }
 
+void *udp_monitor(void *arg)
+{
+    (void)arg;
+
+    int udp_fd;
+    struct sockaddr_in controller_addr;
+    char message[256];
+
+    udp_fd = socket(AF_INET, SOCK_DGRAM, 0);
+
+    if (udp_fd < 0) {
+        perror("UDP socket");
+        return NULL;
+    }
+
+    memset(&controller_addr, 0, sizeof(controller_addr));
+controller_addr.sin_family = AF_INET;
+controller_addr.sin_port = htons(UDP_PORT);
+inet_pton(AF_INET, "127.0.0.1", &controller_addr.sin_addr);
+
+    printf("UDP monitoring started on port %d.\n", UDP_PORT);
+    write_log("UDP MONITOR STARTED PORT:9411");
+
+    while (1) {
+        pthread_mutex_lock(&monitor_mutex);
+        int running = monitor_running;
+        pthread_mutex_unlock(&monitor_mutex);
+
+        if (!running) {
+            break;
+        }
+
+        snprintf(message,
+                 sizeof(message),
+                 "MONITOR SID:%s Agent is running\n",
+                 SID);
+       sendto(udp_fd,
+       message,
+       strlen(message),
+       0,
+       (struct sockaddr *)&controller_addr,
+       sizeof(controller_addr)); 
+        printf("UDP: %s\n", message);
+        sleep(2);
+    }
+
+    close(udp_fd);
+
+    printf("UDP monitoring stopped.\n");
+    write_log("UDP MONITOR STOPPED");
+
+    return NULL;
+}
 void *handle_client(void *arg)
 {
     int client_fd = *(int *)arg;
@@ -234,6 +293,61 @@ snprintf(log_message,
          "COMMAND SID:7003 %s",
          buffer);
 write_log(log_message);
+/* Start UDP monitoring */
+if (strcmp(buffer, "MONITOR START") == 0) {
+    pthread_mutex_lock(&monitor_mutex);
+
+    if (!monitor_running) {
+        monitor_running = 1;
+        pthread_t monitor_thread;
+
+        if (pthread_create(&monitor_thread,
+                           NULL,
+                           udp_monitor,
+                           NULL) == 0) {
+            pthread_detach(monitor_thread);
+            send(client_fd,
+                 "OK MONITOR_STARTED SID:7003\n",
+                 strlen("OK MONITOR_STARTED SID:7003\n"),
+                 0);
+        } else {
+            monitor_running = 0;
+            send(client_fd,
+                 "ERR MONITOR_START_FAILED SID:7003\n",
+                 strlen("ERR MONITOR_START_FAILED SID:7003\n"),
+                 0);
+        }
+    } else {
+        send(client_fd,
+             "ERR MONITOR_ALREADY_RUNNING SID:7003\n",
+             strlen("ERR MONITOR_ALREADY_RUNNING SID:7003\n"),
+             0);
+    }
+
+    pthread_mutex_unlock(&monitor_mutex);
+    continue;
+}
+     /* Stop UDP monitoring */
+if (strcmp(buffer, "MONITOR STOP") == 0) {
+    pthread_mutex_lock(&monitor_mutex);
+
+    if (monitor_running) {
+        monitor_running = 0;
+
+        send(client_fd,
+             "OK MONITOR_STOPPED SID:7003\n",
+             strlen("OK MONITOR_STOPPED SID:7003\n"),
+             0);
+    } else {
+        send(client_fd,
+             "ERR MONITOR_NOT_RUNNING SID:7003\n",
+             strlen("ERR MONITOR_NOT_RUNNING SID:7003\n"),
+             0);
+    }
+
+    pthread_mutex_unlock(&monitor_mutex);
+    continue;
+}
         /* SYSINFO command */
         if (strcmp(buffer, "SYSINFO") == 0) {
 
