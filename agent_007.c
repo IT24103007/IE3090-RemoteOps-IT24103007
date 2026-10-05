@@ -419,7 +419,74 @@ if (extra_bytes > 0) {
                 }
             }
         }
-        else {
+else if (strncmp(buffer, "GET ", 4) == 0) {
+    char filename[256];
+    char filepath[512];
+
+    if (sscanf(buffer + 4, "%255s", filename) == 1) {
+
+        snprintf(filepath,
+                 sizeof(filepath),
+                 "agentfiles/IT24103007/%s",
+                 filename);
+
+        FILE *file = fopen(filepath, "rb");
+
+        if (file == NULL) {
+            char response[256];
+
+            snprintf(response,
+                     sizeof(response),
+                     "ERR 005 FILE_NOT_FOUND SID:%s\n",
+                     SID);
+
+            send(client_fd,
+                 response,
+                 strlen(response),
+                 0);
+        } else {
+            fseek(file, 0, SEEK_END);
+            long filesize = ftell(file);
+            rewind(file);
+
+            char response[512];
+
+            snprintf(response,
+                     sizeof(response),
+                     "OK FILE_SEND %s %ld SID:%s\n",
+                     filename,
+                     filesize,
+                     SID);
+
+            send(client_fd,
+                 response,
+                 strlen(response),
+                 0);
+
+            char file_buffer[1024];
+            size_t bytes_read;
+
+            while ((bytes_read =
+                    fread(file_buffer,
+                          1,
+                          sizeof(file_buffer),
+                          file)) > 0) {
+
+                send(client_fd,
+                     file_buffer,
+                     bytes_read,
+                     0);
+            }
+
+            fclose(file);
+
+            printf("GET completed: %s (%ld bytes)\n",
+                   filename,
+                   filesize);
+        }
+    }
+}       
+ else {
             char response[128];
 
             snprintf(response,

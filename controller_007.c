@@ -134,6 +134,90 @@ if (bytes_received > 0) {
         response[bytes_received] = '\0';
         printf("Agent response: %s", response);
     }
+/* GET command - download test file from Agent */
+const char *get_filename = "test_upload.txt";
+char get_command[512];
+
+snprintf(get_command,
+         sizeof(get_command),
+         "GET %s\n",
+         get_filename);
+
+send(sock_fd,
+     get_command,
+     strlen(get_command),
+     0);
+
+/* Receive GET header one byte at a time until newline.
+   This keeps the file bytes separate from the header. */
+char get_header[512];
+size_t header_pos = 0;
+
+while (header_pos < sizeof(get_header) - 1) {
+    char ch;
+    ssize_t n = recv(sock_fd, &ch, 1, 0);
+
+    if (n <= 0) {
+        break;
+    }
+
+    get_header[header_pos++] = ch;
+
+    if (ch == '\n') {
+        break;
+    }
+}
+
+get_header[header_pos] = '\0';
+
+printf("Agent response: %s", get_header);
+
+char received_filename[256];
+long get_filesize;
+char received_sid[64];
+
+if (sscanf(get_header,
+           "OK FILE_SEND %255s %ld SID:%63s",
+           received_filename,
+           &get_filesize,
+           received_sid) == 3) {
+
+    FILE *download_file = fopen("downloaded_test_upload.txt", "wb");
+
+    if (download_file != NULL) {
+        long total_received = 0;
+        char file_buffer[1024];
+
+        while (total_received < get_filesize) {
+            long remaining = get_filesize - total_received;
+
+            size_t to_receive =
+                remaining < (long)sizeof(file_buffer)
+                    ? (size_t)remaining
+                    : sizeof(file_buffer);
+
+            ssize_t n = recv(sock_fd,
+                             file_buffer,
+                             to_receive,
+                             0);
+
+            if (n <= 0) {
+                break;
+            }
+
+            fwrite(file_buffer, 1, (size_t)n, download_file);
+            total_received += n;
+        }
+
+        fclose(download_file);
+
+        if (total_received == get_filesize) {
+            printf("GET download completed: %s (%ld bytes)\n",
+                   received_filename,
+                   get_filesize);
+        }
+    }
+}
  close(sock_fd);
 
     return EXIT_SUCCESS;
