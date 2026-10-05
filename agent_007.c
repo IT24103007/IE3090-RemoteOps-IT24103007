@@ -144,7 +144,28 @@ int main(void)
         }
 
         buffer[bytes_received] = '\0';
-        buffer[strcspn(buffer, "\r\n")] = '\0';
+
+/* Keep track of where the command line ends.
+   This is needed for PUT because TCP may deliver
+   the PUT header and some file bytes together. */
+char *newline = strchr(buffer, '\n');
+size_t command_length = bytes_received;
+size_t extra_bytes = 0;
+
+if (newline != NULL) {
+    command_length = (size_t)(newline - buffer);
+
+    if (command_length > 0 &&
+        buffer[command_length - 1] == '\r') {
+        buffer[command_length - 1] = '\0';
+    } else {
+        buffer[command_length] = '\0';
+    }
+
+    extra_bytes =
+        bytes_received - ((size_t)(newline - buffer) + 1);
+}
+        
 
         /* SYSINFO command */
         if (strcmp(buffer, "SYSINFO") == 0) {
@@ -309,7 +330,7 @@ else if (strncmp(buffer, "EXEC ", 5) == 0) {
 
         send(client_fd,
              exec_response,
-             strlen(exec_response),
+            strlen(exec_response),
              0);
 
         printf("EXEC command processed: %s\n",
@@ -318,6 +339,86 @@ else if (strncmp(buffer, "EXEC ", 5) == 0) {
 }
 
         /* Unknown command */
+        /* PUT command - upload file from Controller to Agent */
+        else if (strncmp(buffer, "PUT ", 4) == 0) {
+            char filename[256];
+            long filesize;
+
+            if (sscanf(buffer + 4, "%255s %ld", filename, &filesize) == 2) {
+                char filepath[512];
+
+                snprintf(filepath,
+                         sizeof(filepath),
+                         "agentfiles/IT24103007/%s",
+                         filename);
+
+                FILE *file = fopen(filepath, "wb");
+
+                if (file != NULL) {
+                    long total_received = 0;
+                    char file_buffer[1024];
+                /* Save any file bytes that arrived together with the PUT header */
+if (extra_bytes > 0) {
+    size_t header_end = (size_t)(newline - buffer) + 1;
+
+    size_t initial_bytes = extra_bytes;
+
+    if ((long)initial_bytes > filesize) {
+        initial_bytes = (size_t)filesize;
+    }
+
+    fwrite(buffer + header_end,
+           1,
+           initial_bytes,
+           file);
+
+    total_received += (long)initial_bytes;
+} 
+
+
+                    while (total_received < filesize) {
+                        long remaining = filesize - total_received;
+                        size_t to_receive =
+                            remaining < (long)sizeof(file_buffer)
+                                ? (size_t)remaining
+                                : sizeof(file_buffer);
+
+                        ssize_t n = recv(client_fd,
+                                         file_buffer,
+                                         to_receive,
+                                         0);
+
+                        if (n <= 0) {
+                            break;
+                        }
+
+                        fwrite(file_buffer, 1, (size_t)n, file);
+                        total_received += n;
+                    }
+
+                    fclose(file);
+
+                    if (total_received == filesize) {
+                        char response[512];
+
+                        snprintf(response,
+                                 sizeof(response),
+                                 "OK FILE_RECEIVED %s SID:%s\n",
+                                 filename,
+                                 SID);
+
+                        send(client_fd,
+                             response,
+                             strlen(response),
+                             0);
+
+                        printf("PUT completed: %s (%ld bytes)\n",
+                               filename,
+                               filesize);
+                    }
+                }
+            }
+        }
         else {
             char response[128];
 

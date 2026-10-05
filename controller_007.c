@@ -47,7 +47,7 @@ int main(void)
     printf("Connected to RemoteOps Agent successfully.\n");
     /* Send authentication command */
     char auth_command[128];
-    char response[256];
+    char response[2048];
 
     snprintf(auth_command, sizeof(auth_command),
              "AUTH %s\n", AUTH_TOKEN);
@@ -88,7 +88,7 @@ if (bytes_received > 0) {
     printf("Agent response: %s", response);
 }
 /* Request EXEC DATE */
-const char *exec_command = "EXEC LS\n";
+const char *exec_command = "EXEC DATE\n";
 send(sock_fd, exec_command, strlen(exec_command), 0);
 
 memset(response, 0, sizeof(response));
@@ -98,6 +98,42 @@ if (bytes_received > 0) {
     response[bytes_received] = '\0';
     printf("Agent response: %s", response);
 }
+
+
+    /* PUT command - upload test file to Agent */
+    const char *put_filename = "test_upload.txt";
+    const char *put_data = "RemoteOps file upload test - IT24103007\n";
+    long put_size = strlen(put_data);
+
+    char put_command[512];
+
+    snprintf(put_command,
+             sizeof(put_command),
+             "PUT %s %ld\n",
+             put_filename,
+             put_size);
+
+    send(sock_fd,
+         put_command,
+         strlen(put_command),
+         0);
+
+    send(sock_fd,
+         put_data,
+         put_size,
+         0);
+
+    memset(response, 0, sizeof(response));
+
+    bytes_received = recv(sock_fd,
+                          response,
+                          sizeof(response) - 1,
+                          0);
+
+    if (bytes_received > 0) {
+        response[bytes_received] = '\0';
+        printf("Agent response: %s", response);
+    }
  close(sock_fd);
 
     return EXIT_SUCCESS;
