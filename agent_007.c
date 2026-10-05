@@ -5,18 +5,18 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <sys/sysinfo.h>
+#include <pthread.h>
 
 #define AGENT_PORT 9410
 #define BACKLOG 10
 #define AUTH_TOKEN "OPS-3007"
 #define SID "7003"
+void *handle_client(void *arg);
 
 int main(void)
 {
-    int server_fd, client_fd;
-    struct sockaddr_in server_addr, client_addr;
-    socklen_t client_len = sizeof(client_addr);
-
+int server_fd;
+struct sockaddr_in server_addr;
     /* Create TCP socket */
     server_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (server_fd < 0) {
@@ -56,21 +56,53 @@ int main(void)
 
     printf("RemoteOps Agent started.\n");
     printf("Listening on TCP port %d...\n", AGENT_PORT);
+while (1) {
+    struct sockaddr_in client_addr;
+    socklen_t client_len = sizeof(client_addr);
 
-    /* Accept Controller */
-    client_fd = accept(server_fd,
-                       (struct sockaddr *)&client_addr,
-                       &client_len);
+    int *client_fd = malloc(sizeof(int));
 
-    if (client_fd < 0) {
+    if (client_fd == NULL) {
+        perror("malloc");
+        continue;
+    }
+
+    *client_fd = accept(server_fd,
+                        (struct sockaddr *)&client_addr,
+                        &client_len);
+
+    if (*client_fd < 0) {
         perror("accept");
-        close(server_fd);
-        return EXIT_FAILURE;
+        free(client_fd);
+        continue;
     }
 
     printf("Controller connected from %s:%d\n",
            inet_ntoa(client_addr.sin_addr),
            ntohs(client_addr.sin_port));
+
+    pthread_t thread;
+
+    if (pthread_create(&thread,
+                       NULL,
+                       handle_client,
+                       client_fd) != 0) {
+        perror("pthread_create");
+        close(*client_fd);
+        free(client_fd);
+        continue;
+    }
+
+    pthread_detach(thread);
+}
+close(server_fd);
+return EXIT_SUCCESS;
+}
+
+void *handle_client(void *arg)
+{
+    int client_fd = *(int *)arg;
+    free(arg);
 
     char buffer[1024];
     ssize_t bytes_received;
@@ -84,8 +116,7 @@ int main(void)
 
     if (bytes_received <= 0) {
         close(client_fd);
-        close(server_fd);
-        return EXIT_FAILURE;
+        return NULL;
     }
 
     buffer[bytes_received] = '\0';
@@ -108,8 +139,7 @@ int main(void)
         printf("Controller authentication failed.\n");
 
         close(client_fd);
-        close(server_fd);
-        return EXIT_SUCCESS;
+        return NULL;
     }
 
     /* Authentication successful */
@@ -562,7 +592,7 @@ if (strstr(filename, "..") != NULL ||
     printf("Controller disconnected.\n");
 
     close(client_fd);
-    close(server_fd);
+    
 
     return EXIT_SUCCESS;
 }
