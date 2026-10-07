@@ -547,7 +547,7 @@ if (strstr(filename, "..") != NULL ||
 }
 
 /* Maximum upload size: 5 MB */
-if (filesize < 0 || filesize > 5 * 1024 * 1024) {
+if (filesize < 0 || filesize > 100 * 1024 * 1024) {
     char response[128];
 
     snprintf(response,

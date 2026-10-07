@@ -101,10 +101,44 @@ if (bytes_received > 0) {
 
 
     /* PUT command - upload test file to Agent */
-    const char *put_filename = "test_upload.txt";
-    const char *put_data = "RemoteOps file upload test - IT24103007\n";
-    long put_size = strlen(put_data);
+const char *put_filename = "test_upload.txt";
+FILE *put_file = fopen(put_filename, "rb");
 
+if (put_file == NULL) {
+    perror("fopen PUT file");
+    close(sock_fd);
+    return EXIT_FAILURE;
+}
+
+fseek(put_file, 0, SEEK_END);
+long put_size = ftell(put_file);
+rewind(put_file);
+
+if (put_size < 0 || put_size > 100 * 1024 * 1024) {
+    printf("Invalid PUT file size.\n");
+    fclose(put_file);
+    close(sock_fd);
+    return EXIT_FAILURE;
+}
+
+char *put_data = malloc((size_t)put_size);
+
+if (put_data == NULL) {
+    perror("malloc");
+    fclose(put_file);
+    close(sock_fd);
+    return EXIT_FAILURE;
+}
+
+size_t total_read = fread(put_data, 1, (size_t)put_size, put_file);
+fclose(put_file);
+
+if (total_read != (size_t)put_size) {
+    printf("Failed to read complete PUT file.\n");
+    free(put_data);
+    close(sock_fd);
+    return EXIT_FAILURE;
+}
     char put_command[512];
 
     snprintf(put_command,
@@ -134,6 +168,7 @@ if (bytes_received > 0) {
         response[bytes_received] = '\0';
         printf("Agent response: %s", response);
     }
+free(put_data);
 /* GET command - download test file from Agent */
 const char *get_filename = "test_upload.txt";
 char get_command[512];
