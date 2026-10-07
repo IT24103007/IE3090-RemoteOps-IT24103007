@@ -1,111 +1,41 @@
-# AI Prompt Log
+# Prompt Log
 
-## 04 October 2026
+## Scope of AI Assistance
 
-### Tool
-ChatGPT
+ChatGPT was used only as a supporting tool during the RemoteOps implementation. The main concepts, assignment requirements and implementation work were understood and reviewed by the student. AI assistance was mainly requested for specific doubts, debugging issues, implementation clarification and validation.
 
-### Prompt / Topic
-Requested step-by-step guidance for starting the IE3090 RemoteOps assignment, including Ubuntu SSH setup, personalised assignment values, Git/GitHub setup, and initial project structure.
+### 1. Environment and Setup
+- Asked for clarification when configuring the Ubuntu environment and SSH connection.
+- Used AI support when troubleshooting setup-related issues.
 
-### How the output was used
-The guidance was used to configure SSH access to Ubuntu, install GCC/Git/Make, calculate the personalised RemoteOps values, create the GitHub repository, and create the initial project structure. Commands and results were checked during each stage before continuing.
+### 2. TCP Agent and Controller
+- Asked specific questions about socket handling and connection behaviour.
+- Used AI support to clarify implementation details and debug errors encountered during development.
+- Requested clarification for authentication, SYSINFO, LISTPROC and EXEC functionality when needed.
 
----
+### 3. Concurrent Connections
+- Asked for clarification about pthread usage and concurrent client testing.
+- Used AI support to understand and troubleshoot issues observed during multi-client testing.
 
-### Tool
-ChatGPT
+### 4. PUT and GET File Transfer
+- Asked specific questions when implementing and debugging PUT and GET.
+- Used AI support for file-path validation, transfer handling and error cases.
+- Requested clarification when verifying the file-size requirement.
+- Used guidance to troubleshoot the SHA-256 integrity verification process.
 
-### Prompt / Topic
-Requested step-by-step guidance to implement and test AUTH and SYSINFO in the RemoteOps Agent and Controller.
+### 5. UDP Monitoring
+- Asked for clarification about the UDP monitoring worker and thread handling.
+- Used AI support when debugging MONITOR START and MONITOR STOP behaviour.
 
-### How the output was used
-The guidance was used to implement personalised authentication with token OPS-3007 and SID 7003, then replace temporary SYSINFO values with real Linux system load, memory usage, and uptime. The implementation was compiled and tested successfully.
+### 6. Testing and Evidence
+- Asked for help interpreting some terminal outputs and identifying suitable evidence for completed functionality.
+- Used AI support to clarify clean-build and SHA-256 validation requirements.
+- The final tests were executed and verified in the Ubuntu environment.
 
----
+### 7. Documentation
+- Used limited AI assistance for organising the README, design diary, prompt log and report.
+- The final implementation and evidence were reviewed and validated by the student.
 
-### Tool
-ChatGPT
+## Student Contribution
 
-### Prompt / Topic
-Requested guidance for implementing LISTPROC and a whitelisted EXEC command.
-
-### How the output was used
-The guidance was used to implement process listing and restrict EXEC to approved commands instead of allowing arbitrary command execution. Both successful and rejected command cases were tested.
-
----
-
-### Tool
-ChatGPT
-
-### Prompt / Topic
-Requested guidance for implementing PUT and GET file transfer between the Controller and Agent.
-
-### How the output was used
-The guidance was used to implement file upload and download using the personalised storage directory. File transfer was tested with sample files and the transferred content was checked.
-
----
-
-### Tool
-ChatGPT
-
-### Prompt / Topic
-Requested help with TCP file-transfer handling and validation.
-
-### How the output was used
-The guidance was used to handle the case where the PUT command header and initial file bytes can arrive in the same TCP recv() call. Additional validation was also implemented for invalid filenames/paths and oversized files.
-
----
-
-### Tool
-ChatGPT
-
-### Prompt / Topic
-Requested guidance for handling multiple clients using pthreads.
-
-### How the output was used
-The guidance was used to implement thread-based client handling so multiple Controller connections could be served concurrently. The implementation was tested using five clients.
-
----
-
-### Tool
-ChatGPT
-
-### Prompt / Topic
-Requested guidance for graceful client disconnect and thread-safe logging.
-
-### How the output was used
-The guidance was used to implement clean client disconnection and protect log writing with a mutex so multiple threads could write safely. The resulting log file was checked as part of the evidence.
-
----
-
-### Tool
-ChatGPT
-
-### Prompt / Topic
-Requested guidance for implementing UDP monitoring with MONITOR START and MONITOR STOP.
-
-### How the output was used
-The guidance was used to implement a separate UDP monitoring thread. Monitoring messages containing SID 7003 were sent through UDP port 9411 at regular intervals. START and STOP behaviour was tested using a UDP listener.
-
----
-
-### Tool
-ChatGPT
-
-### Prompt / Topic
-Requested debugging help after a compilation error occurred during UDP monitoring development.
-
-### How the output was used
-The error was investigated and the incorrect string formatting was corrected. The Agent and Controller were then successfully compiled using Makefile_007.
-
----
-
-### Tool
-ChatGPT
-
-### Prompt / Topic
-Requested guidance for final testing, evidence screenshots, Git commits, and project documentation.
-
-### How the output was used
-The guidance was used to organise functional testing evidence, save screenshots for the required operations, maintain meaningful incremental Git commits, and prepare the design diary and documentation for final submission.
+The student was responsible for understanding the assignment, making implementation decisions, modifying the source code, compiling and running the programs, performing functional tests, collecting evidence and preparing the final submission. AI assistance was used only when clarification or troubleshooting support was required.
